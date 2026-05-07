@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIntar.id - AI Assistant Multifitur</title>
+    
+    <!-- Google Sign-In API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6C5CE7;
+            --secondary: #A8E6CF;
+            --accent: #FF6B6B;
+            --dark: #2D3436;
+            --light: #F8F9FA;
+            --success: #00B894;
+            --warning: #FDCB6E;
+            --info: #74B9FF;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 10px;
+        }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-overlay.hidden { display: none; }
+
+        .login-box {
+            background: white;
+            border-radius: 25px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #6C5CE7, #A8E6CF);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .login-title {
+            font-size: 1.8em;
+            font-weight: 800;
+            color: #2D3436;
+            margin-bottom: 5px;
+        }
+
+        .login-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .google-btn-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .login-footer {
+            margin-top: 20px;
+            color: #999;
+            font-size: 0.8em;
+        }
+
+        .login-footer span { color: #6C5CE7; font-weight: 600; }
+
+        .loading-spinner {
+            display: none;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        .loading-spinner.active { display: block; }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Main App */
+        .chat-container {
+            width: 95%;
+            max-width: 1000px;
+            height: 92vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .chat-header {
+            background: linear-gradient(135deg, #6C5CE7 0%, #A8E6CF 100%);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: white;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #6C5CE7;
+            flex-shrink: 0;
+        }
+
+        .header-info { flex: 1; }
+
+        .header-info h2 {
+            font-size: 1.2em;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .header-info p {
+            font-size: 0.8em;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        /* Three Dots Menu */
+        .menu-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .menu-btn:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 48px;
+            right: 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            z-index: 200;
+            min-width: 220px;
+            overflow: hidden;
+            animation: menuSlide 0.2s ease;
+        }
+
+        @keyframes menuSlide {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .menu-dropdown.active { display: block; }
+
+        .menu-item {
+            padding: 14px 20px;
+            color: #2D3436;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .menu-item:hover { background: #F5F6FA; }
+
+        .menu-item.danger {
+            color: #FF6B6B;
+            border-top: 1px solid #eee;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: #eee;
+            margin: 5px 0;
+        }
+
+        .menu-item .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        /* User Profile */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 25px;
+            transition: background 0.3s;
+        }
+
+        .user-profile:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid white;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Feature Selector */
+        .feature-selector {
+            background: #F8F9FA;
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #E9ECEF;
+            align-items: center;
+        }
+
+        .feature-label {
+            font-weight: 600;
+            color: #2D3436;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .feature-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .feature-btn {
+            padding: 7px 14px;
+            border: 2px solid #DEE2E6;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: #2D3436;
+            white-space: nowrap;
+        }
+
+        .feature-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .feature-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #F5F6FA;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            display: flex;
+            gap: 10px;
+            animation: msgSlide 0.3s ease;
+        }
+
+        @keyframes msgSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message.bot { align-self: flex-start; }
+
+        .message .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .message.user .avatar { background: var(--primary); color: white; }
+        .message.bot .avatar { background: var(--secondary); color: white; }
+
+        .message .content {
+            background: white;
+            padding: 12px 17px;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .message.user .content {
+            background: var(--primary);
+            color: white;
+        }
+
+        .message .content img {
+            max-width: 260px;
+            border-radius: 12px;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: white;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+
+        .typing-indicator.active { display: block; }
+
+        .typing-dots { display: flex; gap: 4px; }
+
+        .typing-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 12px 20px;
+            background: white;
+            border-top: 2px solid #E9ECEF;
+        }
+
+        .image-preview {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .preview-item {
+            position: relative;
+            display: inline-block;
+        }
+
+        .preview-item img {
+            max-height: 65px;
+            border-radius: 10px;
+            border: 2px solid var(--primary);
+        }
+
+        .remove-image {
+            position: absolute;
+            top: -7px;
+            right: -7px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-container { display: flex; gap: 8px; align-items: flex-end; }
+
+        #imageInput { display: none; }
+
+        .upload-btn {
+            background: #F0F0F0;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 17px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .upload-btn:hover { background: var(--primary); color: white; }
+
+        #messageInput {
+            flex: 1;
+            padding: 11px 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+            resize: none;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        #messageInput:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(108,92,231,0.08);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, var(--primary), #764ba2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 17px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(108,92,231,0.4);
+        }
+
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* History Sidebar */
+        .history-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 300;
+        }
+
+        .history-overlay.active { display: block; }
+
+        .history-sidebar {
+            position: fixed;
+            top: 0;
+            right: -380px;
+            width: 380px;
+            max-width: 90vw;
+            height: 100%;
+            background: white;
+            z-index: 400;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 30px rgba(0,0,0,0.2);
+        }
+
+        .history-sidebar.active { right: 0; }
+
+        .history-header {
+            padding: 20px;
+            border-bottom: 2px solid #E9ECEF;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .history-header h3 {
+            font-size: 1.2em;
+            color: #2D3436;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-close {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: none;
+            background: #F0F0F0;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .history-close:hover { background: #e0e0e0; }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .history-item {
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 8px;
+            border: 1px solid #eee;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: #F5F6FA;
+            border-color: var(--primary);
+        }
+
+        .history-item .history-title {
+            font-weight: 600;
+            color: #2D3436;
+            font-size: 13px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-item .history-preview {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item .history-date {
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 6px;
+        }
+
+        .history-delete {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            color: #999;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .history-delete:hover {
+            background: #ffe0e0;
+            color: #FF6B6B;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: #999;
+        }
+
+        .history-empty .icon { font-size: 50px; margin-bottom: 15px; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            background: #333;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9em;
+            z-index: 9999;
+            transition: transform 0.3s ease;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+
+        .toast.success { background: #00B894; }
+        .toast.error { background: #FF6B6B; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chat-container { width: 100%; height: 100vh; border-radius: 0; }
+            .message { max-width: 90%; }
+            .history-sidebar { width: 100%; max-width: 100%; right: -100%; }
+            .user-name { display: none; }
+            .feature-selector { overflow-x: auto; }
+            .feature-buttons { flex-wrap: nowrap; }
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <div class="login-logo">PI</div>
+            <h2 class="login-title">Selamat Datang di PIntar.id</h2>
+            <p class="login-subtitle">Login dengan Google untuk menggunakan AI Assistant</p>
+            
+            <div class="google-btn-container">
+                <div id="g_id_onload"
+                     data-client_id="1055901803462-8g5b7sk4vlbbn6d39nmukgfdniojkufu.apps.googleusercontent.com"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleGoogleLogin"
+                     data-auto_prompt="false">
+                </div>
+
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="rectangular"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <div class="loading-spinner" id="loginSpinner"></div>
+            <p class="login-footer">🔒 Login aman dengan <span>Google</span></p>
+        </div>
+    </div>
+
+    <!-- History Sidebar -->
+    <div class="history-overlay" id="historyOverlay" onclick="closeHistory()"></div>
+    <div class="history-sidebar" id="historySidebar">
+        <div class="history-header">
+            <h3>📜 Riwayat Chat</h3>
+            <button class="history-close" onclick="closeHistory()">✕</button>
+        </div>
+        <div class="history-list" id="historyList">
+            <div class="history-empty">
+                <div class="icon">💬</div>
+                <p>Belum ada riwayat chat</p>
+            </div>
+        </div>
+        <div style="padding: 15px; border-top: 1px solid #eee;">
+            <button style="width:100%;padding:12px;border-radius:12px;border:2px solid #FF6B6B;background:white;color:#FF6B6B;cursor:pointer;font-weight:600;" onclick="clearAllHistory()">
+                🗑️ Hapus Semua Riwayat
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="chat-container" id="chatContainer" style="display:none;">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="logo">PI</div>
+            <div class="header-info">
+                <h2>PIntar.id</h2>
+                <p>✨ Asisten AI Multifitur</p>
+            </div>
+            <div class="header-actions">
+                <!-- User Profile -->
+                <div class="user-profile" id="userProfile">
+                    <img class="user-avatar" id="userAvatar" src="" alt="User">
+                    <span class="user-name" id="userNameDisplay">User</span>
+                </div>
+                
+                <!-- Three Dots Menu -->
+                <button class="menu-btn" id="menuBtn" title="Menu">⋮</button>
+                <div class="menu-dropdown" id="menuDropdown">
+                    <button class="menu-item" onclick="openHistory()">
+                        <span class="icon">📜</span> Riwayat Chat
+                    </button>
+                    <button class="menu-item" onclick="exportHistory()">
+                        <span class="icon">📥</span> Export Riwayat
+                    </button>
+                    <div class="menu-divider"></div>
+                    <button class="menu-item" onclick="clearChatSession()">
+                        <span class="icon">🔄</span> Chat Baru
+                    </button>
+                    <button class="menu-item danger" onclick="logout()">
+                        <span class="icon">🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Selector -->
+        <div class="feature-selector">
+            <span class="feature-label">🎯 Mode:</span>
+            <div class="feature-buttons">
+                <button class="feature-btn active" data-mode="chat" onclick="switchMode('chat', this)">💬 Chat Biasa</button>
+                <button class="feature-btn" data-mode="gambar" onclick="switchMode('gambar', this)">🖼️ Analisis Gambar</button>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="avatar">🤖</div>
+                <div class="content">
+                    <strong>Halo! Selamat datang di PIntar.id!</strong> 👋<br><br>
+                    Saya asisten AI yang siap membantu Anda:<br>
+                    💬 <strong>Chat Biasa</strong> - Tanya apa saja<br>
+                    🖼️ <strong>Analisis Gambar</strong> - Upload & analisis gambar<br><br>
+                    📜 Riwayat chat tersimpan otomatis di akun Google Anda.<br>
+                    Klik <strong>⋮</strong> di pojok kanan atas untuk melihat riwayat.
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+            <div class="image-preview" id="imagePreview"></div>
+            <div id="notificationContainer"></div>
+            <div class="input-container">
+                <input type="file" id="imageInput" accept="image/*" multiple>
+                <button class="upload-btn" id="uploadBtn" title="Upload Gambar">📷</button>
+                <textarea id="messageInput" placeholder="Ketik pesan Anda di sini..." rows="1"></textarea>
+                <button class="send-btn" id="sendBtn" title="Kirim">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ============ GOOGLE CLIENT ID ============
+        const GOOGLE_CLIENT_ID = '1055901803462-8g5b7sk4vlbbn6d39nmukgfdniojkufu.apps.googleusercontent.com';
+        const HISTORY_STORAGE_KEY = 'pintar_chat_history';
+        
+        // ============ APP STATE ============
+        const state = {
+            currentMode: 'chat',
+            isProcessing: false,
+            selectedImages: [],
+            user: null,
+            currentChatId: null,
+            chatHistory: []
+        };
+
+        // ============ API CONFIG ============
+        const API_CONFIG = {
+            baseUrl: 'https://api.koboillm.com/v1',
+            apiKey: 'sk-ZbGBNOaG3qnX96ylYaF0Tg',
+            model: 'gemini/gemini-2.5-pro'
+        };
+
+        // ============ GOOGLE LOGIN ============
+        function handleGoogleLogin(response) {
+            const loginSpinner = document.getElementById('loginSpinner');
+            loginSpinner.classList.add('active');
+            
+            try {
+                const credential = response.credential;
+                const payload = parseJwt(credential);
+                
+                console.log('✅ Google Login Success:', payload.name);
+                
+                const userData = {
+                    name: payload.name,
+                    email: payload.email,
+                    picture: payload.picture,
+                    googleId: payload.sub,
+                    loginTime: new Date().toISOString()
+                };
+                
+                // Simpan user data dengan key berdasarkan Google ID
+                localStorage.setItem('pintar_user_' + userData.googleId, JSON.stringify(userData));
+                localStorage.setItem('pintar_current_user_id', userData.googleId);
+                state.user = userData;
+                
+                updateUserUI();
+                loadUserHistory();
+                
+                setTimeout(() => {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('chatContainer').style.display = 'flex';
+                    loginSpinner.classList.remove('active');
+                    showToast('✅ Selamat datang, ' + userData.name.split(' ')[0] + '!', 'success');
+                }, 800);
+                
+            } catch (error) {
+                console.error('Login Error:', error);
+                loginSpinner.classList.remove('active');
+                showToast('❌ Gagal login. Coba lagi.', 'error');
+            }
+        }
+
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
+        function updateUserUI() {
+            if (!state.user) return;
+            document.getElementById('userAvatar').src = state.user.picture;
+            document.getElementById('userNameDisplay').textContent = state.user.name.split(' ')[0];
+        }
+
+        // ============ MENU (Three Dots) ============
+        function toggleMenu() {
+            const menu = document.getElementById('menuDropdown');
+            menu.classList.toggle('active');
+        }
+
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('menuDropdown');
+            const menuBtn = document.getElementById('menuBtn');
+            if (menu.classList.contains('active') && !menu.contains(e.target) && e.target !== menuBtn) {
+                menu.classList.remove('active');
+            }
+        });
+
+        // ============ HISTORY SYSTEM ============
+        function getHistoryKey() {
+            if (!state.user) return null;
+            return HISTORY_STORAGE_KEY + '_' + state.user.googleId;
+        }
+
+        function saveChatHistory() {
+            if (!state.user) return;
+            
+            const messages = document.getElementById('chatMessages');
+            const messageElements = messages.querySelectorAll('.message');
+            const chatData = [];
+            
+            messageElements.forEach(msg => {
+                const isUser = msg.classList.contains('user');
+                const content = msg.querySelector('.content');
+                if (content) {
+                    chatData.push({
+                        type: isUser ? 'user' : 'bot',
+                        text: content.innerText,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            });
+            
+            if (chatData.length === 0) return;
+            
+            const historyKey = getHistoryKey();
+            let allHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            
+            // Update existing atau buat baru
+            if (state.currentChatId) {
+                const existingIndex = allHistory.findIndex(h => h.id === state.currentChatId);
+                if (existingIndex >= 0) {
+                    allHistory[existingIndex].messages = chatData;
+                    allHistory[existingIndex].updatedAt = new Date().toISOString();
+                }
+            } else {
+                const chatId = 'chat_' + Date.now();
+                state.currentChatId = chatId;
+                const firstUserMsg = chatData.find(m => m.type === 'user');
+                allHistory.unshift({
+                    id: chatId,
+                    title: firstUserMsg ? firstUserMsg.text.substring(0, 50) : 'Chat Baru',
+                    preview: firstUserMsg ? firstUserMsg.text.substring(0, 80) : '',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    messages: chatData
+                });
+            }
+            
+            localStorage.setItem(historyKey, JSON.stringify(allHistory));
+        }
+
+        function loadUserHistory() {
+            if (!state.user) return;
+            const historyKey = getHistoryKey();
+            const allHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            state.chatHistory = allHistory;
+        }
+
+        function openHistory() {
+            document.getElementById('menuDropdown').classList.remove('active');
+            loadUserHistory();
+            renderHistoryList();
+            document.getElementById('historyOverlay').classList.add('active');
+            document.getElementById('historySidebar').classList.add('active');
+        }
+
+        function closeHistory() {
+            document.getElementById('historyOverlay').classList.remove('active');
+            document.getElementById('historySidebar').classList.remove('active');
+        }
+
+        function renderHistoryList() {
+            const historyList = document.getElementById('historyList');
+            const history = state.chatHistory;
+            
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="history-empty">
+                        <div class="icon">💬</div>
+                        <p>Belum ada riwayat chat</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyList.innerHTML = history.map((chat, index) => `
+                <div class="history-item" onclick="loadChat('${chat.id}')">
+                    <button class="history-delete" onclick="deleteHistory(event, '${chat.id}')">✕</button>
+                    <div class="history-title">
+                        ${chat.messages[0]?.type === 'user' ? '👤' : '🤖'}
+                        ${chat.title}
+                    </div>
+                    <div class="history-preview">${chat.preview || 'Tidak ada pesan'}</div>
+                    <div class="history-date">${formatDate(chat.createdAt)}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadChat(chatId) {
+            const history = state.chatHistory.find(h => h.id === chatId);
+            if (!history) return;
+            
+            state.currentChatId = chatId;
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.innerHTML = '';
+            
+            history.messages.forEach(msg => {
+                addMessageToChat(msg.type, msg.text, [], false);
+            });
+            
+            closeHistory();
+            showToast('✅ Riwayat chat dimuat', 'success');
+        }
+
+        function deleteHistory(event, chatId) {
+            event.stopPropagation();
+            
+            if (!confirm('Hapus riwayat chat ini?')) return;
+            
+            const historyKey = getHistoryKey();
+            let allHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            allHistory = allHistory.filter(h => h.id !== chatId);
+            localStorage.setItem(historyKey, JSON.stringify(allHistory));
+            
+            if (state.currentChatId === chatId) {
+                state.currentChatId = null;
+            }
+            
+            loadUserHistory();
+            renderHistoryList();
+            showToast('🗑️ Riwayat dihapus', 'success');
+        }
+
+        function clearAllHistory() {
+            if (!confirm('Hapus SEMUA riwayat chat? Tindakan ini tidak bisa dibatalkan!')) return;
+            
+            const historyKey = getHistoryKey();
+            localStorage.removeItem(historyKey);
+            state.chatHistory = [];
+            state.currentChatId = null;
+            
+            renderHistoryList();
+            closeHistory();
+            
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="message bot">
+                    <div class="avatar">🤖</div>
+                    <div class="content">
+                        Semua riwayat telah dihapus. Silakan mulai chat baru! ✨
+                    </div>
+                </div>
+            `;
+            
+            showToast('🗑️ Semua riwayat dihapus', 'success');
+        }
+
+        function exportHistory() {
+            document.getElementById('menuDropdown').classList.remove('active');
+            
+            const historyKey = getHistoryKey();
+            const allHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            
+            if (allHistory.length === 0) {
+                showToast('❌ Tidak ada riwayat untuk diexport', 'error');
+                return;
+            }
+            
+            const exportData = {
+                user: state.user ? { name: state.user.name, email: state.user.email } : null,
+                exportDate: new Date().toISOString(),
+                totalChats: allHistory.length,
+                chats: allHistory
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pintar-history-' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast('✅ Riwayat berhasil di-export', 'success');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return 'Baru saja';
+            if (minutes < 60) return minutes + ' menit lalu';
+            if (hours < 24) return hours + ' jam lalu';
+            if (days < 7) return days + ' hari lalu';
+            
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function clearChatSession() {
+            document.getElementById('menuDropdown').classList.remove('active');
+            
+            // Simpan chat saat ini dulu
+            saveChatHistory();
+            
+            // Reset
+            state.currentChatId = null;
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="message bot">
+                    <div class="avatar">🤖</div>
+                    <div class="content">
+                        Chat baru dimulai! Silakan bertanya. ✨
+                    </div>
+                </div>
+            `;
+            
+            showToast('✅ Chat baru dimulai', 'success');
+        }
+
+        function logout() {
+            document.getElementById('menuDropdown').classList.remove('active');
+            
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                saveChatHistory();
+                localStorage.removeItem('pintar_current_user_id');
+                state.user = null;
+                state.currentChatId = null;
+                state.chatHistory = [];
+                
+                document.getElementById('chatContainer').style.display = 'none';
+                document.getElementById('loginOverlay').classList.remove('hidden');
+                
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="message bot">
+                        <div class="avatar">🤖</div>
+                        <div class="content">
+                            <strong>Halo! Selamat datang di PIntar.id!</strong> 👋<br><br>
+                            Silakan login untuk menggunakan AI Assistant.
+                        </div>
+                    </div>
+                `;
+                
+                if (window.google && google.accounts) {
+                    google.accounts.id.disableAutoSelect();
+                }
+                
+                showToast('👋 Anda telah logout', 'success');
+            }
+        }
+
+        // ============ MODE SWITCHING ============
+        function switchMode(mode, btn) {
+            state.currentMode = mode;
+            document.querySelectorAll('.feature-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const placeholders = {
+                chat: 'Ketik pesan Anda di sini...',
+                gambar: 'Upload gambar dan tanyakan tentang gambar tersebut...'
+            };
+            document.getElementById('messageInput').placeholder = placeholders[mode] || placeholders.chat;
+            document.getElementById('messageInput').focus();
+        }
+
+        // ============ IMAGE HANDLING ============
+        function handleImageUpload(event) {
+            const files = Array.from(event.target.files);
+            files.forEach(file => {
+                if (!file.type.startsWith('image/')) {
+                    showToast('File harus berupa gambar!', 'error');
+                    return;
+                }
+                if (file.size > 20 * 1024 * 1024) {
+                    showToast('Ukuran maksimal 20MB!', 'error');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    state.selectedImages.push({ data: e.target.result, type: file.type });
+                    updateImagePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+            document.getElementById('imageInput').value = '';
+        }
+
+        function updateImagePreview() {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            state.selectedImages.forEach((image, index) => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.innerHTML = `
+                    <img src="${image.data}">
+                    <button class="remove-image" onclick="removeImage(${index})">×</button>
+                `;
+                preview.appendChild(item);
+            });
+        }
+
+        function removeImage(index) {
+            state.selectedImages.splice(index, 1);
+            updateImagePreview();
+        }
+
+        // ============ CHAT ============
+        async function sendMessage() {
+            const messageText = document.getElementById('messageInput').value.trim();
+            
+            if (!messageText && state.selectedImages.length === 0) {
+                showToast('Silakan ketik pesan atau upload gambar!', 'error');
+                return;
+            }
+            
+            if (state.isProcessing) {
+                showToast('Mohon tunggu, sedang memproses...', 'error');
+                return;
+            }
+            
+            if (!state.user) {
+                showToast('Silakan login terlebih dahulu!', 'error');
+                return;
+            }
+            
+            state.isProcessing = true;
+            
+            const userMessage = {
+                text: messageText || 'Analisis gambar ini',
+                images: [...state.selectedImages]
+            };
+            
+            addMessageToChat('user', messageText, state.selectedImages);
+            
+            document.getElementById('messageInput').value = '';
+            document.getElementById('messageInput').style.height = 'auto';
+            state.selectedImages = [];
+            updateImagePreview();
+            
+            const typingIndicator = addTypingIndicator();
+            
+            try {
+                const response = await callAI(userMessage);
+                typingIndicator.remove();
+                if (response) {
+                    addMessageToChat('bot', response);
+                } else {
+                    addMessageToChat('bot', 'Maaf, tidak ada respons dari AI.');
+                }
+                
+                // Auto-save history
+                setTimeout(() => saveChatHistory(), 500);
+                
+            } catch (error) {
+                typingIndicator.remove();
+                console.error('Error:', error);
+                addMessageToChat('bot', 'Maaf, terjadi kesalahan. Silakan coba lagi.');
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                state.isProcessing = false;
+            }
+        }
+
+        async function callAI(userMessage) {
+            const content = [];
+            
+            if (userMessage.images && userMessage.images.length > 0) {
+                userMessage.images.forEach(image => {
+                    content.push({
+                        type: 'image_url',
+                        image_url: { url: image.data }
+                    });
+                });
+            }
+            
+            if (userMessage.text) {
+                content.push({ type: 'text', text: userMessage.text });
+            }
+            
+            const response = await fetch(`${API_CONFIG.baseUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API_CONFIG.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: API_CONFIG.model,
+                    messages: [{ role: 'user', content: content }],
+                    max_tokens: 2000,
+                    temperature: 0.7
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`API Error ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.choices?.[0]?.message?.content || null;
+        }
+
+        function addMessageToChat(type, text, images = [], saveHistory = true) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            
+            if (type === 'user' && state.user && state.user.picture) {
+                avatar.innerHTML = `<img src="${state.user.picture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            } else {
+                avatar.textContent = type === 'user' ? '👤' : '🤖';
+            }
+            
+            const content = document.createElement('div');
+            content.className = 'content';
+            
+            if (images && images.length > 0) {
+                images.forEach(image => {
+                    const img = document.createElement('img');
+                    img.src = image.data;
+                    img.onclick = () => window.open(image.data);
+                    content.appendChild(img);
+                });
+            }
+            
+            if (text) {
+                content.innerHTML += text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    .replace(/\n/g, '<br>');
+            }
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const messagesDiv = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator active';
+            typingDiv.innerHTML = '<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return typingDiv;
+        }
+
+        function showToast(message, type = '') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ============ INITIALIZATION ============
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cek user yang sudah login
+            const currentUserId = localStorage.getItem('pintar_current_user_id');
+            
+            if (currentUserId) {
+                const userData = JSON.parse(localStorage.getItem('pintar_user_' + currentUserId));
+                if (userData) {
+                    state.user = userData;
+                    updateUserUI();
+                    loadUserHistory();
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('chatContainer').style.display = 'flex';
+                    console.log('✅ Auto-login:', state.user.name);
+                }
+            }
+            
+            // Event Listeners
+            document.getElementById('sendBtn').addEventListener('click', sendMessage);
+            document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('imageInput').click());
+            document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+            document.getElementById('menuBtn').addEventListener('click', toggleMenu);
+            
+            document.getElementById('messageInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            document.getElementById('messageInput').addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+            
+            // Save history before closing
+            window.addEventListener('beforeunload', function() {
+                saveChatHistory();
+            });
+            
+            console.log('🚀 PIntar.id siap!');
+            console.log('🔐 Google Login: ' + GOOGLE_CLIENT_ID);
+            console.log('📜 History tersimpan per akun Google');
+        });
+    </script>
+</body>
+</html>
